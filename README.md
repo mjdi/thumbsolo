@@ -1,13 +1,17 @@
 **Thumbsolo: experimental floating drum-typing soft keyboard for Android**
 
-![screenshot of it on my phone](./thumbsolo_screenshot.png)
-
 Foray into Android development, and asking the question "is there a better way to type on mobile?"
 
 Created with inspiration/boiler-plate/know-how from a few sources, which I'll list below:
 
 https://github.com/dbof10/float-keyboard
 http://www.yorku.ca/mack/ExperimentSoftware/#Graffiti
+
+ **GIFs of it in action (Setup, KeyDemo, Typing)**
+ 
+ ![Setup Gif](https://imgur.com/xBwhAKG.gif)
+![Keys Demo](https://i.imgur.com/Zs7oOHA.gif)
+![Typing Demo](https://imgur.com/PgWdJCU.gif)
 
 **Build Instructions**
  
@@ -31,5 +35,5 @@ http://www.yorku.ca/mack/ExperimentSoftware/#Graffiti
  this experimental software keyboard for Android is just a way for me to learn Android development.
  Feel free to reuse/modify/extend any parts of this code, in the same spirit as Professor I. Scott MacKenzie from YorkU.
  
- 
+
  
