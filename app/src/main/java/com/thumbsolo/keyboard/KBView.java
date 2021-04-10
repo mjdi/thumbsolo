@@ -1,14 +1,15 @@
 package com.thumbsolo.keyboard;
 
 import android.content.Context;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Canvas;
+import android.inputmethodservice.InputMethodService;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.Window;
-import android.widget.RelativeLayout;
 
 import java.util.Hashtable;
 
@@ -16,11 +17,14 @@ public class KBView extends View
 {
     static final int LH = 0;
     static final int RH = 1;
+    static final int PORT = Configuration.ORIENTATION_PORTRAIT;
+    static final int LAND = Configuration.ORIENTATION_LANDSCAPE;
 
-    int width, height;
     int hand;
-    int orientation, navBarHeight, statusBarHeight;
+    int s;
     float pixelDensity;
+
+    InputMethodService.Insets outInsets;
 
     // Color constants
     private int alpha = 100; // default
@@ -32,18 +36,23 @@ public class KBView extends View
     KBGeometry G;
     OnTapListener onTapListener;
     Hashtable<Integer, KBTap> t = new Hashtable<>(); // hash of pointerID to recorded taps (finger input)
+
     private int[] numTimesModHeld = new int[]{0,0,0,0,0,0,0,0};
+    private final int LH_SHIFT_MOD_MASK_IDX = 0;
+    private final int LH_CTRL_MOD_MASK_IDX = 1;
+    private final int LH_ALT_MOD_MASK_IDX = 2;
+    private final int LH_META_MOD_MASK_IDX = 3;
+    private final int RH_META_MOD_MASK_IDX = 4;
+    private final int RH_ALT_MOD_MASK_IDX = 5;
+    private final int RH_CTRL_MOD_MASK_IDX = 6;
+    private final int RH_SHIFT_MOD_MASK_IDX = 7;
+
     private int numTimesHypHeld = 0;
-                                // LH       RH
+                                  // LH     RH
     private boolean[] revolving = {false, false}; // tells MotionMove that we need to only remove pId from t
     private boolean[] bkspNotArrows = {true, true}; // tells MotionMove whether revolving is bksp/enter or arrow keys
     private boolean[] keycodeNotHypecode = {true, true}; // tells KBView whether to use keycode (true) or hypcode (false)
     private boolean[] capsLockOn = {false, false}; // toggles capslock function (TBD) on an off per hand
-    private boolean[] insertOn = {false, false}; // toggles insert function (TBD) on an off per hand
-
-    private int getOppositeHand(int hand){
-        return (hand == LH) ? RH : LH;
-    }
 
     private int getNavBarHeight() {
         Resources resources = getResources();
@@ -84,35 +93,31 @@ public class KBView extends View
         else if (hand == RH)
             hand = LH;
     }
-
+    private int getOppositeHand(int hand){
+        return (hand == LH) ? RH : LH;
+    }
     public KBView(Context context, AttributeSet attributes, int styleDef) {
         super(context,attributes, styleDef);
     }
-
     public KBView(Context context, AttributeSet attributes) {
         super(context,attributes);
     }
-
-    public KBView(Context context, int hand) {
+    public KBView(Context context, int hand, InputMethodService.Insets outInsets, int s) {
         super(context);
-        orientation = getResources().getConfiguration().orientation;
-        navBarHeight = getNavBarHeight();
-        statusBarHeight = getStatusBarHeight();
         pixelDensity = context.getResources().getDisplayMetrics().density;
         this.hand = hand;
+        this.outInsets = outInsets;
+        this.s = s;
 
         /*
         if (hand == LH)
             this.setLayoutParams(new RelativeLayout.LayoutParams(s, s));
         else
             this.setLayoutParams(new RelativeLayout.LayoutParams(s, s));
-
         */
     }
 
-    void createKBGeometry(){
-        G = new KBGeometry(hand, orientation, navBarHeight, statusBarHeight, pixelDensity, alpha);
-    }
+    void createKBGeometry(){ G = new KBGeometry(hand, pixelDensity, alpha); }
 
     @Override
     public boolean onTouchEvent(MotionEvent me) {
@@ -140,9 +145,9 @@ public class KBView extends View
         KBTap down = t.get(pId);
         if (down.sectDown.keycode == G.ST){
             if (down.hand == LH)
-                numTimesModHeld[0] = 1;
+                numTimesModHeld[LH_SHIFT_MOD_MASK_IDX] = 1;
             else
-                numTimesModHeld[7] = 1;
+                numTimesModHeld[RH_SHIFT_MOD_MASK_IDX] = 1;
             invalidate();
         }
 
@@ -151,8 +156,6 @@ public class KBView extends View
         return true; // t.get(pId).sectDown.keycode != G.UNRECOGNIZED; // only true if recognized
     }
     private void motionEventActionMove(MotionEvent m) {
-        long now = System.currentTimeMillis();
-
         int pId; // loop through unordered pointer indices (up to count)
         for (int pIdx = 0; pIdx < m.getPointerCount(); pIdx++) {
             pId = m.getPointerId(pIdx);
@@ -170,9 +173,9 @@ public class KBView extends View
                 if (!revolving[H] && move.Y < down.sectDown.Y) { // Y -> Y - 1
                     if (down.sectDown.keycode == G.ST) {
                         if (down.hand == LH)
-                            numTimesModHeld[0] = 0;
+                            numTimesModHeld[LH_SHIFT_MOD_MASK_IDX] = 0;
                         else
-                            numTimesModHeld[7] = 0;
+                            numTimesModHeld[RH_SHIFT_MOD_MASK_IDX] = 0;
                         capsLockOn[LH] = !capsLockOn[LH]; // Shift down is CapsLock
                         capsLockOn[RH] = !capsLockOn[RH]; // Shift down is CapsLock
                         invalidate();
@@ -185,61 +188,60 @@ public class KBView extends View
                         keycodeNotHypecode[LH] = !keycodeNotHypecode[LH]; // swap hyper state
                         keycodeNotHypecode[RH] = !keycodeNotHypecode[RH]; // swap hyper state
                         if (down.hand == LH) // get rid of shift
-                            numTimesModHeld[0] = 0;
+                            numTimesModHeld[LH_SHIFT_MOD_MASK_IDX] = 0;
                         else
-                            numTimesModHeld[7] = 0;
+                            numTimesModHeld[RH_SHIFT_MOD_MASK_IDX] = 0;
                         invalidate();
                     } else if (move.Y == 1) {
                         bkspNotArrows[LH] = !bkspNotArrows[LH]; // swap bkspNotArrows
                         bkspNotArrows[RH] = !bkspNotArrows[RH]; // swap bkspNotArrows
                     } else if (move.Y == 2)
                         onTapListener.onTap(new KBEvent(keycodeNotHypecode[H] ? down.sectDown.hypcode : down.sectDown.keycode,
-                                                        ((move.X - (2 *down.sectDown.X)) == 0) ? 0 : 1, false, false));
+                                                        ((move.X - (2 *down.sectDown.X)) == 0) ? 0 : 1, // up-left or up-right
+                                                false, false));
                     else if (move.Y == 3)
-                        if (!keycodeNotHypecode[H]) // only allow hyp code on keycode level
-                        onTapListener.onTap(new KBEvent(keycodeNotHypecode[H] ? down.sectDown.hypcode : down.sectDown.keycode,
-                                                        getMod(), false, false));
+                        if (!keycodeNotHypecode[H]) // only allow hyp code on keycode level (EXCEPT FOR 9 and 0 on Z and B)
+                            onTapListener.onTap(new KBEvent(keycodeNotHypecode[H] ? down.sectDown.hypcode : down.sectDown.keycode,
+                                                            getMod(), false, false));
                     t.remove(pId);
-
                 } // Revolving
                 else if (move.X < down.sectDown.X) {  // X -> X - 1
                     if (down.sectDown.Y == 1 && move.Y == 1)
                         if (!bkspNotArrows[H])
                             onTapListener.onTap(new KBEvent( G.UP, getMod(), false, false));
                         else {
-                            if (H == LH)
-                                alpha = alpha - alphaStepSize; // TBD: make it per hand
-                            else
-                                alpha = alpha - alphaStepSize;
+                            alpha = alpha - alphaStepSize;
                             setAlphaComponentOfGeometry(alpha);
                         }
                     else if (down.sectDown.Y == 2 && move.Y == 2)
                         onTapListener.onTap(new KBEvent( bkspNotArrows[H] ? G.BE : G.LT, getMod(), false, false));
                     else if (down.sectDown.Y == 3 && move.Y == 3)
-                        if (down.sectDown.X == 7 || down.sectDown.X == 0)
-                            onTapListener.onTap(new KBEvent(G.ER, getMod(), false, false));
-                        else if (down.sectDown.X == 1 || down.sectDown.X == 2)
-                            if (H == LH)
-                                numTimesModHeld[2] = 0; // LH Alt
+                        if (down.sectDown.X == 0 || down.sectDown.X == 1)
+                            onTapListener.onTap(new KBEvent(G.PP, getMod(), false, false));
+                        else if (down.sectDown.X == 2 || down.sectDown.X == 3) {
+                            int orient = getResources().getConfiguration().orientation;
+                            int dispW = getDisplayWidth();
+                            int dispH = getDisplayHeight();
+                            int statH = getStatusBarHeight();
+                            int navH = getNavBarHeight();
+
+                            int bottom = s;
+                            if (orient == PORT)
+                                outInsets.contentTopInsets = (outInsets.contentTopInsets == bottom) ? - navH : bottom ;
                             else
-                                numTimesModHeld[5] = 0; // RH Alt
-                        else if (down.sectDown.X == 3 || down.sectDown.X == 4)
-                            if (H == LH)
-                                numTimesModHeld[3] = 0; // LH Meta
-                            else
-                                numTimesModHeld[4] = 0; // RH Meta
-                        else if (down.sectDown.X == 5 || down.sectDown.X == 6)
-                            if (H == LH)
-                                numTimesModHeld[1] = 0; // LH Ctrl
-                            else
-                                numTimesModHeld[6] = 0; // RH Ctrl
+                                outInsets.contentTopInsets = (outInsets.contentTopInsets == bottom) ? 0 : bottom ;
+                            invalidate();
+                        }else if (down.sectDown.X == 4 || down.sectDown.X == 5)
+                            onTapListener.onTap(new KBEvent(G.TB, getMod(), false, false));
+                        else if (down.sectDown.X == 6 || down.sectDown.X == 7)
+                            onTapListener.onTap(new KBEvent(G.HE, getMod(), false, false));
                     revolving[H] = true;
                     if (move.Y == down.sectDown.Y) {
                         if (down.sectDown.keycode == G.ST){ // remove shift
                             if (down.hand == LH)
-                                numTimesModHeld[0] = 0;
+                                numTimesModHeld[LH_SHIFT_MOD_MASK_IDX] = 0;
                             else
-                                numTimesModHeld[7] = 0;
+                                numTimesModHeld[RH_SHIFT_MOD_MASK_IDX] = 0;
                             invalidate();
                         }
                         down.sectDown = move;
@@ -249,39 +251,27 @@ public class KBView extends View
                         if (!bkspNotArrows[H])
                             onTapListener.onTap(new KBEvent( G.DN, getMod(), false, false));
                         else {
-                            if (H == LH)
-                                alpha = alpha + alphaStepSize; // TBD: make it per hand
-                            else
-                                alpha = alpha + alphaStepSize;
+                            alpha = alpha + alphaStepSize;
                             setAlphaComponentOfGeometry(alpha);
                         }
                     else if (down.sectDown.Y == 2 && move.Y == 2)
                         onTapListener.onTap(new KBEvent( bkspNotArrows[H] ? G.DE : G.RT, getMod(), false, false));
                     else if (down.sectDown.Y == 3 && move.Y == 3)
-                        if (down.sectDown.X == 7 || down.sectDown.X == 0)
-                            onTapListener.onTap(new KBEvent(G.TB, getMod(), false, false));
-                        else if (down.sectDown.X == 1 || down.sectDown.X == 2)
-                            if (H == LH)
-                                numTimesModHeld[2] = 1; // LH Alt
-                            else
-                                numTimesModHeld[5] = 1; // RH Alt
-                        else if (down.sectDown.X == 3 || down.sectDown.X == 4)
-                            if (H == LH)
-                                numTimesModHeld[3] = 1; // LH Meta
-                            else
-                                numTimesModHeld[4] = 1; // RH Meta
-                        else if (down.sectDown.X == 5 || down.sectDown.X == 6)
-                            if (H == LH)
-                                numTimesModHeld[1] = 1; // LH Ctrl
-                            else
-                                numTimesModHeld[6] = 1; // RH Ctrl
+                        if (down.sectDown.X == 0 || down.sectDown.X == 1)
+                            onTapListener.onTap(new KBEvent(G.PN, getMod(), false, false));
+                        else if (down.sectDown.X == 2 || down.sectDown.X == 3)
+                            onTapListener.onTap(new KBEvent(G.ER, getMod(), false, false));
+                        else if (down.sectDown.X == 4 || down.sectDown.X == 5)
+                            onTapListener.onTap(new KBEvent(G.TB, 1, false, false));
+                        else if (down.sectDown.X == 6 || down.sectDown.X == 7)
+                            onTapListener.onTap(new KBEvent(G.ED, getMod(), false, false));
                     revolving[H] = true;
                     if (move.Y == down.sectDown.Y){
                         if (down.sectDown.keycode == G.ST){ // remove shift
                             if (down.hand == LH)
-                                numTimesModHeld[0] = 0;
+                                numTimesModHeld[LH_SHIFT_MOD_MASK_IDX] = 0;
                             else
-                                numTimesModHeld[7] = 0;
+                                numTimesModHeld[RH_SHIFT_MOD_MASK_IDX] = 0;
                             invalidate();
                         }
                         down.sectDown = move;
@@ -292,6 +282,7 @@ public class KBView extends View
             /* // repeating code, TBD
             if ((next.sectMove.X == move.X) && (next.sectMove.Y == move.Y)) {
                 if (!next.mod && !next.hyp) {
+                    long now = System.currentTimeMillis();
                     float total_elapsed = now - next.tDown;
                     if (total_elapsed > next.REPEAT_DELAY) {
                         if (!next.repeating) {
@@ -325,9 +316,9 @@ public class KBView extends View
 
             if (down.sectDown.keycode == G.ST){ // remove shift
                 if (down.hand == LH)
-                    numTimesModHeld[0] = 0;
+                    numTimesModHeld[LH_SHIFT_MOD_MASK_IDX] = 0;
                 else
-                    numTimesModHeld[7] = 0;
+                    numTimesModHeld[RH_SHIFT_MOD_MASK_IDX] = 0;
                 invalidate();
             }
 
@@ -339,7 +330,10 @@ public class KBView extends View
                 KBSector up = G.getSectNow(xUp, yUp, down);
 
                 if ((up.X == down.sectDown.X) && (up.Y == down.sectDown.Y)) { // same key up-down
-                    onTapListener.onTap(new KBEvent(keycodeNotHypecode[H]?  down.sectDown.keycode : down.sectDown.hypcode, getMod(), false, false));
+                    onTapListener.onTap(new KBEvent(keycodeNotHypecode[H] ?
+                                                    down.sectDown.keycode :
+                                                    down.sectDown.hypcode,
+                                                    getMod(), false, false));
                     t.remove(pId);
                 }
             } else if (t.containsKey(pId) && revolving[down.hand]) {
@@ -359,7 +353,6 @@ public class KBView extends View
     }
 
     private void handleKeyEvent(KBTap tap, boolean held) {
-
         int code = getHypOrRegKeycode(tap.sectUp.keycode, tap.sectUp.hypcode);
 
         if (isHyp(tap.sectDown.keycode)) {
@@ -372,12 +365,6 @@ public class KBView extends View
             tap.typed = true; // prevents repeating
         } else if (code == G.UNRECOGNIZED) {
             onTapListener.onTap(new KBEvent(code, getMod(), true, false));
-        } else if (code == G.INCREASE_ALPHA) {
-            alpha = alpha + alphaStepSize;
-            setAlphaComponentOfGeometry(alpha);
-        } else if (code == G.DECREASE_ALPHA){
-            alpha = alpha - alphaStepSize;
-            setAlphaComponentOfGeometry(alpha);
         } else if (code == G.LANGUAGE_SWITCH)
             onTapListener.onTap(new KBEvent(code, getMod(), false, true));
         else
@@ -409,49 +396,49 @@ public class KBView extends View
     private void updateMod(KBTap tap, boolean held){
         switch (tap.sectDown.keycode) {
             case KeyEvent.KEYCODE_SHIFT_LEFT:
-                numTimesModHeld[0] = held ? numTimesModHeld[0] + 1: numTimesModHeld[0] - 1;
+                numTimesModHeld[LH_SHIFT_MOD_MASK_IDX] = held ? numTimesModHeld[LH_SHIFT_MOD_MASK_IDX] + 1: numTimesModHeld[LH_SHIFT_MOD_MASK_IDX] - 1;
                 break;
             case KeyEvent.KEYCODE_CTRL_LEFT:
-                numTimesModHeld[1] = held ? numTimesModHeld[1] + 1: numTimesModHeld[1] - 1;
+                numTimesModHeld[LH_CTRL_MOD_MASK_IDX] = held ? numTimesModHeld[LH_CTRL_MOD_MASK_IDX] + 1: numTimesModHeld[LH_CTRL_MOD_MASK_IDX] - 1;
                 break;
             case KeyEvent.KEYCODE_ALT_LEFT:
-                numTimesModHeld[2] = held ? numTimesModHeld[2] + 1: numTimesModHeld[2] - 1;
+                numTimesModHeld[LH_ALT_MOD_MASK_IDX] = held ? numTimesModHeld[LH_CTRL_MOD_MASK_IDX] + 1: numTimesModHeld[LH_CTRL_MOD_MASK_IDX] - 1;
                 break;
             case KeyEvent.KEYCODE_META_LEFT:
-                numTimesModHeld[3] = held ? numTimesModHeld[3] + 1: numTimesModHeld[3] - 1;
+                numTimesModHeld[LH_META_MOD_MASK_IDX] = held ? numTimesModHeld[LH_META_MOD_MASK_IDX] + 1: numTimesModHeld[LH_META_MOD_MASK_IDX] - 1;
                 break;
             case KeyEvent.KEYCODE_META_RIGHT:
-                numTimesModHeld[4] = held ? numTimesModHeld[4] + 1: numTimesModHeld[4] - 1;
+                numTimesModHeld[RH_META_MOD_MASK_IDX] = held ? numTimesModHeld[RH_META_MOD_MASK_IDX] + 1: numTimesModHeld[RH_META_MOD_MASK_IDX] - 1;
                 break;
             case KeyEvent.KEYCODE_ALT_RIGHT:
-                numTimesModHeld[5] = held ? numTimesModHeld[5] + 1: numTimesModHeld[5] - 1;
+                numTimesModHeld[RH_ALT_MOD_MASK_IDX] = held ? numTimesModHeld[RH_ALT_MOD_MASK_IDX] + 1: numTimesModHeld[RH_ALT_MOD_MASK_IDX] - 1;
                 break;
             case KeyEvent.KEYCODE_CTRL_RIGHT:
-                numTimesModHeld[6] = held ? numTimesModHeld[6] + 1: numTimesModHeld[6] - 1;
+                numTimesModHeld[RH_CTRL_MOD_MASK_IDX] = held ? numTimesModHeld[RH_CTRL_MOD_MASK_IDX] + 1: numTimesModHeld[RH_CTRL_MOD_MASK_IDX] - 1;
                 break;
             case KeyEvent.KEYCODE_SHIFT_RIGHT:
-                numTimesModHeld[7] = held ? numTimesModHeld[7] + 1: numTimesModHeld[7] - 1;
+                numTimesModHeld[RH_SHIFT_MOD_MASK_IDX] = held ? numTimesModHeld[RH_SHIFT_MOD_MASK_IDX] + 1: numTimesModHeld[RH_SHIFT_MOD_MASK_IDX] - 1;
                 break;
         }
     }
     private int getMod(){
         int mod = 0;
 
-        if (numTimesModHeld[0] > 0 || capsLockOn[LH])
+        if (numTimesModHeld[LH_SHIFT_MOD_MASK_IDX] > 0 || capsLockOn[LH])
             mod |= 1;
-        if (numTimesModHeld[1] > 0)
+        if (numTimesModHeld[LH_CTRL_MOD_MASK_IDX] > 0)
             mod |= 2;
-        if (numTimesModHeld[2] > 0)
+        if (numTimesModHeld[LH_ALT_MOD_MASK_IDX] > 0)
             mod |= 4;
-        if (numTimesModHeld[3] > 0)
+        if (numTimesModHeld[LH_META_MOD_MASK_IDX] > 0)
             mod |= 8;
-        if (numTimesModHeld[4] > 0)
+        if (numTimesModHeld[RH_META_MOD_MASK_IDX] > 0)
             mod |= 16;
-        if (numTimesModHeld[5] > 0)
+        if (numTimesModHeld[RH_ALT_MOD_MASK_IDX] > 0)
             mod |= 32;
-        if (numTimesModHeld[6] > 0)
+        if (numTimesModHeld[RH_CTRL_MOD_MASK_IDX] > 0)
             mod |= 64;
-        if (numTimesModHeld[7] > 0 || capsLockOn[RH])
+        if (numTimesModHeld[RH_SHIFT_MOD_MASK_IDX] > 0 || capsLockOn[RH])
             mod |= 128;
 
         return mod;
@@ -469,23 +456,22 @@ public class KBView extends View
             hand = RH;
 
             if (keycodeNotHypecode[hand]) // opposite hand shift
-                c.drawBitmap( (numTimesModHeld[0] == 1 || capsLockOn[hand]) ? G.RHkeyShiftBM : G.RHkeyBM,
+                c.drawBitmap( (numTimesModHeld[LH_SHIFT_MOD_MASK_IDX] == 1 || capsLockOn[hand]) ? G.RHkeyShiftBM : G.RHkeyBM,
                               (float) corners[hand][0].x, (float) corners[hand][0].y, null);
             else
-                c.drawBitmap( (numTimesModHeld[0] == 1 || capsLockOn[hand]) ? G.RHhypShiftBM : G.RHhypBM,
+                c.drawBitmap( (numTimesModHeld[LH_SHIFT_MOD_MASK_IDX] == 1 || capsLockOn[hand]) ? G.RHhypShiftBM : G.RHhypBM,
                         (float) corners[hand][0].x, (float) corners[hand][0].y, null);
 
         //}
         //if (hand == LH) {
             hand = LH;
             c.save();
-            c.rotate(90, center[hand].x, center[hand].y); // LH is rotated by 90 deg.
 
             if (keycodeNotHypecode[hand])
-                c.drawBitmap( (numTimesModHeld [7] == 1) || capsLockOn[hand] ? G.RHkeyShiftBM : G.RHkeyBM,
+                c.drawBitmap( (numTimesModHeld [RH_SHIFT_MOD_MASK_IDX] == 1) || capsLockOn[hand] ? G.RHkeyShiftBM : G.RHkeyBM,
                         (float) corners[hand][0].x, (float) corners[hand][0].y, null);
             else
-                c.drawBitmap( (numTimesModHeld [7] == 1) || capsLockOn[hand] ? G.RHhypShiftBM : G.RHhypBM,
+                c.drawBitmap( (numTimesModHeld [RH_SHIFT_MOD_MASK_IDX] == 1) || capsLockOn[hand] ? G.RHhypShiftBM : G.RHhypBM,
                         (float) corners[hand][0].x, (float) corners[hand][0].y, null);
             c.restore();
         //}

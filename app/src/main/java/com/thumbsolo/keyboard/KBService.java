@@ -19,7 +19,9 @@ package com.thumbsolo.keyboard;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.graphics.drawable.GradientDrawable;
 import android.inputmethodservice.InputMethodService;
 import android.os.IBinder;
 import android.os.Vibrator;
@@ -47,25 +49,20 @@ public class KBService extends InputMethodService implements KBView.OnTapListene
 {
     static final int LH = 0;
     static final int RH = 1;
+    static final int PORT = Configuration.ORIENTATION_PORTRAIT;
+    static final int LAND = Configuration.ORIENTATION_LANDSCAPE;
 
     private InputMethodManager mInputMethodManager;
-    private WindowManager wm;
     Vibrator vibrator;
     private SharedPreferences sharedPref;
     private KBView V;
-    private Window W;
-
-    private int hand, displayWidth, displayHeight, orientation, s, offcenterxdist;
-    WindowManager.LayoutParams LP;
-
-    final boolean DEBUG_S10e = false;
+    private int hand;
+    private int s;
 
     private int getDisplayWidth() {
         return Resources.getSystem().getDisplayMetrics().widthPixels;
     }
-    private int getDisplayHeight() {
-        return Resources.getSystem().getDisplayMetrics().heightPixels;
-    }
+    private int getDisplayHeight(){ return Resources.getSystem().getDisplayMetrics().heightPixels;}
     private int getNavBarHeight() {
         Resources resources = getResources();
         int resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android");
@@ -90,17 +87,12 @@ public class KBService extends InputMethodService implements KBView.OnTapListene
     @Override
     public void onCreate() {
         super.onCreate();
+
         mInputMethodManager = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-        displayWidth = Resources.getSystem().getDisplayMetrics().widthPixels;
-        displayHeight = Resources.getSystem().getDisplayMetrics().heightPixels;
-        orientation = getResources().getConfiguration().orientation;     // orientation (either ORIENTATION_LANDSCAPE, ORIENTATION_PORTRAIT)
 
-        s = (int) (Math.min(displayHeight, displayWidth) / 2.0); // side length of solo
-        offcenterxdist = (displayWidth < displayHeight ? s/2 : displayWidth/2);
+        s = (int) (Math.min(getDisplayHeight(), getDisplayWidth()) / 2.0); // side length of solo
 
-        V = new KBView(this, RH);
-        V.createKBGeometry();
-        V.setOnTapListener(this);
+        hand = RH; // hardcoded
     }
 
     /**
@@ -180,20 +172,25 @@ public class KBService extends InputMethodService implements KBView.OnTapListene
     // Marcus: I think this is used to create the "floating" effect
     @Override
     public void onConfigureWindow(Window win, boolean isFullscreen, boolean isCandidatesOnly) {
+        int orient = getResources().getConfiguration().orientation;
+        int dispW = getDisplayWidth();
+        int dispH = getDisplayHeight();
+        int statH = getStatusBarHeight();
+        int navH = getNavBarHeight();
 
-        W = win;
-        W.setGravity(NO_GRAVITY);
-        //W.setLayout(s,s);
-        W.setLayout(displayWidth,s);
-
-        LP = W.getAttributes();
-        // LP.x = 0;//+ offcenterxdist;
-        LP.y = getDisplayHeight() - 2*s - getNavBarHeight() - 125; // 75 = curved screen?
+        Window W = win;
+        WindowManager.LayoutParams LP = W.getAttributes();
+        LP.width = dispW; //orient == PORT ? dispW : dispW - navH;
+        LP.height = s;
+        LP.x = 0; // always from the left
+        LP.y = orient == PORT ? navH : 0; // LP is from the bottom!!!!!!!!
         W.setAttributes(LP);
 
+        V = new KBView(this, RH, V.outInsets, s);
+        V.createKBGeometry();
+        V.setOnTapListener(this);
         V.W = W;
     }
-
 
     // will execute upon each finger lift
     public void onTap(KBEvent te) {
@@ -227,17 +224,21 @@ public class KBService extends InputMethodService implements KBView.OnTapListene
             }
 
              */
-
         }
         // use setInputView(View view) to change between 2 thumbs, LH, and RH Thumbs (FUTURE WORK)
     }
 
-    // Ornamental Stuff at the moment
-
+    // Used to set where the app underneath (receiving text) starts from the bottom of the nav-bar/screen
     @Override
     public void onComputeInsets(Insets outInsets) {
-        outInsets.contentTopInsets = s;
-        outInsets.visibleTopInsets = s;
+        // by passing these to the View, we can change these programmatically
+        if (V == null) {
+            outInsets.contentTopInsets = s;
+            outInsets.visibleTopInsets = s;
+            V = new KBView(this, RH, outInsets, s);
+            V.createKBGeometry();
+            V.setOnTapListener(this);
+        }
     }
 
     @Override

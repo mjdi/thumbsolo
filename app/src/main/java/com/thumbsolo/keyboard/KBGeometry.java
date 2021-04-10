@@ -16,16 +16,13 @@ import java.util.Hashtable;
 class KBGeometry {
 
     static final int UNRECOGNIZED = -10;
-    static final int INCREASE_ALPHA = -11;
-    static final int DECREASE_ALPHA = -12;
     static final int LANGUAGE_SWITCH = -15;
     static final int HR = -20; // Hyper
-    static final int RC = -30; // Repeat Char/Space
 
     private static final int SE = KeyEvent.KEYCODE_SPACE;
 
     private static final int _A = KeyEvent.KEYCODE_A;
-    private static final int _B = KeyEvent.KEYCODE_B;
+    static final int _B = KeyEvent.KEYCODE_B;
     private static final int _C = KeyEvent.KEYCODE_C;
     private static final int _D = KeyEvent.KEYCODE_D;
     private static final int _E = KeyEvent.KEYCODE_E;
@@ -49,7 +46,7 @@ class KBGeometry {
     private static final int _W = KeyEvent.KEYCODE_W;
     private static final int _X = KeyEvent.KEYCODE_X;
     private static final int _Y = KeyEvent.KEYCODE_Y;
-    private static final int _Z = KeyEvent.KEYCODE_Z;
+    static final int _Z = KeyEvent.KEYCODE_Z;
 
     private static final int _0 = KeyEvent.KEYCODE_0;
     private static final int _1 = KeyEvent.KEYCODE_1;
@@ -88,37 +85,34 @@ class KBGeometry {
     static final int ER = KeyEvent.KEYCODE_ENTER;
     static final int TB = KeyEvent.KEYCODE_TAB;
 
-
     static final int UP = KeyEvent.KEYCODE_DPAD_UP;
     static final int DN = KeyEvent.KEYCODE_DPAD_DOWN;
     static final int LT = KeyEvent.KEYCODE_DPAD_LEFT;
     static final int RT = KeyEvent.KEYCODE_DPAD_RIGHT;
 
-    private static final int HE = KeyEvent.KEYCODE_MOVE_HOME;
-    private static final int ED = KeyEvent.KEYCODE_MOVE_END;
-    private static final int PP = KeyEvent.KEYCODE_PAGE_UP;
-    private static final int PN = KeyEvent.KEYCODE_PAGE_DOWN;
+    static final int HE = KeyEvent.KEYCODE_MOVE_HOME;
+    static final int ED = KeyEvent.KEYCODE_MOVE_END;
+    static final int PP = KeyEvent.KEYCODE_PAGE_UP;
+    static final int PN = KeyEvent.KEYCODE_PAGE_DOWN;
 
-    private static final int F1 = KeyEvent.KEYCODE_F1;
-    private static final int F2 = KeyEvent.KEYCODE_F2;
-    private static final int F3 = KeyEvent.KEYCODE_F3;
-    private static final int F4 = KeyEvent.KEYCODE_F4;
-    private static final int F5 = KeyEvent.KEYCODE_F5;
-    private static final int F6 = KeyEvent.KEYCODE_F6;
-    private static final int F7 = KeyEvent.KEYCODE_F7;
-    private static final int F8 = KeyEvent.KEYCODE_F8;
-    private static final int F9 = KeyEvent.KEYCODE_F9;
-    private static final int F0 = KeyEvent.KEYCODE_F10;
-    private static final int FA = KeyEvent.KEYCODE_F11;
-    private static final int FB = KeyEvent.KEYCODE_F12;
+    static final int F1 = KeyEvent.KEYCODE_F1;
+    static final int F2 = KeyEvent.KEYCODE_F2;
+    static final int F3 = KeyEvent.KEYCODE_F3;
+    static final int F4 = KeyEvent.KEYCODE_F4;
+    static final int F5 = KeyEvent.KEYCODE_F5;
+    static final int F6 = KeyEvent.KEYCODE_F6;
+    static final int F7 = KeyEvent.KEYCODE_F7;
+    static final int F8 = KeyEvent.KEYCODE_F8;
+    static final int F9 = KeyEvent.KEYCODE_F9;
+    static final int F0 = KeyEvent.KEYCODE_F10;
+    static final int FA = KeyEvent.KEYCODE_F11;
+    static final int FB = KeyEvent.KEYCODE_F12;
 
     static final int LH = 0;
     static final int RH = 1;
-    private static final double PI = Math.PI; // shorthand
-    private static final double LH_OFFSET_ANGLE = 1.75 * PI;
-    private static final double RH_OFFSET_ANGLE = 1.25 * PI;
-    //private static final double LH_OFFSET_ANGLE = .75 * PI;
-    //private static final double RH_OFFSET_ANGLE = .25 * PI;
+    static final double PI = Math.PI; // shorthand
+    static final double LH_OFFSET_ANGLE = 1.5 * PI;
+    static final double RH_OFFSET_ANGLE = 1.5 * PI;
 
     private static final String KEY = "key";
     private static final String KEYSHIFT = "keyShift";
@@ -129,7 +123,6 @@ class KBGeometry {
 
     int hand;
     private static final int NUM_HANDS = 2;
-    DblPt[] KBViewCorners = new DblPt[4]; // 4 corners of KBView
     DblPt[][] mCorners = new DblPt[NUM_HANDS][4]; // 4 * 2 (LH,RH) corners of KBGeometry
 
     double s; // side length of thumbsolo box
@@ -149,28 +142,19 @@ class KBGeometry {
     Bitmap RHkeyBM, RHkeyShiftBM, RHhypBM, RHhypShiftBM, RHLinesMaskBM;
 
     // init() Arguments
-    private int width, height, orientation, navBarHeight, statusBarHeight, alpha;
+    private int width, height, alpha;
     private int getDisplayWidth() {
           return Resources.getSystem().getDisplayMetrics().widthPixels;
     }
-    private int getDisplayHeight() {
-        return Resources.getSystem().getDisplayMetrics().heightPixels;
-    }
-    public boolean isPortraitOrientation() {
-        return orientation == Configuration.ORIENTATION_PORTRAIT;
-    }
-    KBGeometry(int hand, int orientation, int navBarHeight, int statusBarHeight,
-               float pixelDensity, int alpha) {
+    private int getDisplayHeight() { return Resources.getSystem().getDisplayMetrics().heightPixels;}
+
+    KBGeometry(int hand, float pixelDensity, int alpha) {
         this.hand = hand;
-        this.orientation = orientation;
-        this.navBarHeight = navBarHeight;
-        this.statusBarHeight = statusBarHeight;
         this.pixelDensity = pixelDensity;
         this.alpha = alpha;
 
         width = getDisplayWidth();
-        height = getDisplayHeight(); // full height - minus navbar height
-        //height = height + (width < height? - navBarHeight : 0);
+        height = getDisplayHeight();
         updateKBGeometryAndColorAlpha(alpha);
     }
 
@@ -185,27 +169,12 @@ class KBGeometry {
         sf = (float) s;
         si = (int) s;
 
-        int h_prime = height - statusBarHeight;
-
-        KBViewCorners[0] = new DblPt(0, 0);
-        KBViewCorners[1] = new DblPt(s, 0);
-        KBViewCorners[2] = new DblPt(0, s);
-        KBViewCorners[3] = new DblPt(s, s);
-
         // LH is bottom left, RH is bottom right
         mCorners[LH][0] = new DblPt(0, 0);
         mCorners[LH][1] = new DblPt(s, 0);
         mCorners[LH][2] = new DblPt(0, s);
         mCorners[LH][3] = new DblPt(s, s);
 
-        /*
-        // LH is bottom left, RH is bottom right
-        mCorners[RH][0] = new DblPt(0, 0);
-        mCorners[RH][1] = new DblPt(s, 0);
-        mCorners[RH][2] = new DblPt(0, s);
-        mCorners[RH][3] = new DblPt(s, s);
-
-        */
         mCorners[RH][0] = new DblPt(width - s, 0);
         mCorners[RH][1] = new DblPt(width, 0);
         mCorners[RH][2] = new DblPt(width - s, s);
@@ -267,7 +236,6 @@ class KBGeometry {
 
         return maskBM;
     }
-
     private Bitmap makeSquareTextBitmap(String textType, int hand, Bitmap linesMaskBM){
 
         Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.DITHER_FLAG);
@@ -294,14 +262,12 @@ class KBGeometry {
                 float vertDisplacement = - ((p.descent() + p.ascent())/2);
                 p.setTextAlign(Paint.Align.CENTER);
 
-                int pathHalfLength = (int)(100.0/Math.sqrt(2)); // hypotenuse divided by sqrt(2)
+                FloatPt txtCtr = getTextCenterRH(Y, X);
+                Path textPath = new Path();
 
-                FloatPt txtCtr = getTextCenterRH(Y,X);
-
-                Path textPath = new Path(); // +/- 45 deg angle depending on hand
-                int coeff = (hand == RH ? 1 : -1); // should be -1 for RH
-                textPath.moveTo(txtCtr.x - pathHalfLength, txtCtr.y + coeff * pathHalfLength);
-                textPath.lineTo(txtCtr.x + pathHalfLength, txtCtr.y - coeff * pathHalfLength);
+                int pathHalfLength = 100;
+                textPath.moveTo(txtCtr.x - pathHalfLength, txtCtr.y);
+                textPath.lineTo(txtCtr.x + pathHalfLength, txtCtr.y);
 
                 maskC.drawTextOnPath(text, textPath, 0, vertDisplacement, p);
             }
@@ -340,31 +306,28 @@ class KBGeometry {
         }  else if (Y == 3){
 
             FloatPt o = new FloatPt(sf/2,sf/2); // center of square
-            double[] diagonalAngles = new double[]{
-                                            RH_OFFSET_ANGLE           , RH_OFFSET_ANGLE + 0.5 * PI,
-                                            RH_OFFSET_ANGLE + 0.5 * PI, RH_OFFSET_ANGLE + 1.0 * PI,
-                                            RH_OFFSET_ANGLE + 1.0 * PI, RH_OFFSET_ANGLE + 1.5 * PI,
-                                            RH_OFFSET_ANGLE + 1.5 * PI, RH_OFFSET_ANGLE };
+
+            double[] diagonalAngles = new double[]{ // x,y
+                                            RH_OFFSET_ANGLE + 0.25 * PI, RH_OFFSET_ANGLE + 0.25 * PI,
+                                            RH_OFFSET_ANGLE + 0.75 * PI, RH_OFFSET_ANGLE + 0.75 * PI,
+                                            RH_OFFSET_ANGLE + 1.25 * PI, RH_OFFSET_ANGLE + 1.25 * PI,
+                                            RH_OFFSET_ANGLE + 1.75 * PI, RH_OFFSET_ANGLE + 1.75 * PI};
+
             FloatPt opp = new FloatPt(
                     (float) (o.x + radii[NUM_CIRCLES - 1] *
                                     Math.cos(fitThetaDegWithinUnitRotation(diagonalAngles[X]))),
                     (float) (o.y + radii[NUM_CIRCLES - 1] *
                                     Math.sin(fitThetaDegWithinUnitRotation(diagonalAngles[X]))));
 
-            int[] x_offset_direction_per_X = new int[]{ 0, 0, 1, 1, 0, 0,-1,-1};
-            int[] y_offset_direction_per_X = new int[]{-1,-1, 0, 0, 1, 1, 0, 0};
-            //int[] x_offset_direction_per_X = new int[]{ 0, 0,-1,-1, 0, 0, 1, 1};
-            //int[] y_offset_direction_per_X = new int[]{ 1, 1, 0, 0,-1,-1, 0, 0};
+            int[] x_offset_direction_per_X = new int[]{ 0, 1, 1, 0, 0, -1, -1, 0};
+            int[] y_offset_direction_per_X = new int[]{-1, 0, 0, 1, 1,  0,  0, -1};
+
 
             FloatPt[] c = new FloatPt[4]; // swapped indices, since clock wise from bottom right
             c[0] = new FloatPt(0f,0f);
             c[1] = new FloatPt(sf,0f);
             c[3] = new FloatPt(0f,sf);
             c[2] = new FloatPt(sf,sf);
-            //c[2] = new FloatPt(0f,0f);
-            //c[3] = new FloatPt(sf,0f);
-            //c[1] = new FloatPt(0f,sf);
-            //c[0] = new FloatPt(sf,sf);
             int[] c_index_per_X = new int[]{ 0, 1, 1, 2, 2, 3, 3, 0};
 
             return new FloatPt(
@@ -410,7 +373,6 @@ class KBGeometry {
                                         (((ry >= 0) ? 1 : -1) * Math.acos(rx / r)) - offsetAngle)))
                          , System.currentTimeMillis());
     }
-
     KBSector getSectNow(double x, double y, KBTap t){
 
         if (isInsideSquare(x, y, mCorners[t.hand])) {
@@ -430,7 +392,6 @@ class KBGeometry {
     private boolean isInsideSquare(double x, double y, DblPt[] corners) {
         return (x >= corners[0].x && x <= corners[3].x && y >= corners[0].y && y <= corners[3].y);
     }
-
     private int determineRow(double r){
         if (r <= radii[0])
             return 0;
@@ -441,7 +402,6 @@ class KBGeometry {
         else
             return 3; // to handle outside of main circle
     }
-
     private int determineCol(int row, int cols, double thetaDeg){
         int col = UNRECOGNIZED;
 
@@ -459,7 +419,6 @@ class KBGeometry {
         }
         return col;
     }
-
     private double fitThetaDegWithinUnitRotation(double theta) {
 
         // modulus f'n needs positive angle representation
@@ -494,8 +453,8 @@ class KBGeometry {
         s.put(1, r1);
         Hashtable<Integer, KBSector> r2 = new Hashtable<>();
         r2.put(0, new KBSector(0, 2, _B, "b", "B", _0, "0", ")"));
-        r2.put(1, new KBSector(1, 2, _C, "c", "c", ED, "⇲", "⇲"));
-        r2.put(2, new KBSector(2, 2, _D, "d", "D", PN, "⇟", "⇟"));
+        r2.put(1, new KBSector(1, 2, _C, "c", "C", RB, "]", "}"));
+        r2.put(2, new KBSector(2, 2, _D, "d", "D", BH, "\\", "|"));
         r2.put(3, new KBSector(3, 2, _F, "f", "F", F1, "F1", "F1"));
         r2.put(4, new KBSector(4, 2, _G, "g", "G", F2, "F2", "F2"));
         r2.put(5, new KBSector(5, 2, _H, "h", "H", F3, "F3", "F3"));
@@ -508,83 +467,20 @@ class KBGeometry {
         r2.put(12, new KBSector(12, 2, _U, "u", "U", F0, "F10", "F10"));
         r2.put(13, new KBSector(13, 2, _V, "v", "V", FA, "F11", "F11"));
         r2.put(14, new KBSector(14, 2, _W, "w", "W", FB, "F12", "F12"));
-        r2.put(15, new KBSector(15, 2, _X, "x", "X", PP, "⇞", "⇞"));
-        r2.put(16, new KBSector(16, 2, _Y, "y", "Y", HE, "⇱", "⇱"));
+        r2.put(15, new KBSector(15, 2, _X, "x", "X", SH, "/", "?"));
+        r2.put(16, new KBSector(16, 2, _Y, "y", "Y", LB, "[", "{"));
         r2.put(17, new KBSector(17, 2, _Z, "z", "Z", _9, "9", "("));
         s.put(2, r2);
         Hashtable<Integer, KBSector> r3 = new Hashtable<>();
-        r3.put(0, new KBSector(0, 3, RB, "]", "}", RB, "]", "}"));
+        r3.put(0, new KBSector(0, 3, MS, "-", "_", MS, "-", "_"));
         r3.put(1, new KBSector(1, 3, ES, "=", "+", ES, "=", "+"));
-        r3.put(2, new KBSector(2, 3, MS, "-", "_", MS, "-", "_"));
-        r3.put(3, new KBSector(3, 3, PD, ".", ">", SH, "/", "?"));
-        r3.put(4, new KBSector(4, 3, CA, ",", "<", BH, "\\", "|"));
-        r3.put(5, new KBSector(5, 3, SN, ";", ":", SN, ";", ":"));
-        r3.put(6, new KBSector(6, 3, AE, "'", "\"", GE, "`", "~"));
-        r3.put(7, new KBSector(7, 3, LB, "[", "{", LB, "[", "{"));
+        r3.put(2, new KBSector(2, 3, AE, "'", "\"", AE, "'", "\""));
+        r3.put(3, new KBSector(3, 3, SN, ";", ":", SN, ";", ":"));
+        r3.put(4, new KBSector(4, 3, PD, ".", ">", PD, ".", ">"));
+        r3.put(5, new KBSector(5, 3, CA, ",", "<", CA, ",", "<"));
+        r3.put(6, new KBSector(6, 3, _9, "9", "(", GE, "`", "~"));
+        r3.put(7, new KBSector(7, 3, _0, "0", ")", EE, "␛", "␛"));
         s.put(3, r3);
         return s;
-
-        /*V
-        Hashtable<Integer, Hashtable<Integer, KBSector>> s = new Hashtable<>();
-        Hashtable<Integer, KBSector> r0 = new Hashtable<>();
-        r0.put(0, new KBSector(0, 0, HR, "✦","✦", HR, "✦","✦"));
-        s.put(0, r0);
-        Hashtable<Integer, KBSector> r1 = new Hashtable<>();
-        r1.put(0, new KBSector(0, 1, _L, "l","L", CA, ",","<"));
-        r1.put(1, new KBSector(1, 1, _H, "h","H", AE, "'","\""));
-        r1.put(2, new KBSector(2, 1, _D, "d","D", SN, ";",":"));
-        r1.put(3, new KBSector(3, 1, _S, "s","S", LB, "[","{"));
-        r1.put(4, new KBSector(4, 1, _A, "a","A", RB, "]","}"));
-        r1.put(5, new KBSector(5, 1, RC, "�","�", RC, "�","�"));
-        r1.put(6, new KBSector(6, 1, _M, "m","M", BH, "\\","|"));
-        r1.put(7, new KBSector(7, 1, _N, "n","N", SH, "/","?"));
-        r1.put(8, new KBSector(8, 1, _C, "c","C", PD, ".",">"));
-        s.put(1, r1);
-        Hashtable<Integer, KBSector> r2 = new Hashtable<>();
-        r2.put(0, new KBSector(0, 2, _K, "k","K", CL, "⌃","⌃"));
-        r2.put(1, new KBSector(1, 2, _J, "j","J", ST, "⇧","⇧"));
-        r2.put(2, new KBSector(2, 2, _G, "g","G", CK, "⇪","⇪"));
-        r2.put(3, new KBSector(3, 2, _F, "f","F", GE, "`","~"));
-        r2.put(4, new KBSector(4, 2, _Q, "q","Q", _1, "1","!"));
-        r2.put(5, new KBSector(5, 2, _W, "w","W", _2, "2","@"));
-        r2.put(6, new KBSector(6, 2, _E, "e","E", _3, "3","#"));
-        r2.put(7, new KBSector(7, 2, _R, "r","R", _4, "4","$"));
-        r2.put(8, new KBSector(8, 2, _T, "t","T", _5, "5","%"));
-        r2.put(9, new KBSector(9, 2, _Y, "y","Y", _6, "6","^"));
-        r2.put(10, new KBSector(10, 2, _U, "u","U", _7, "7","&"));
-        r2.put(11, new KBSector(11, 2, _I, "i","I", _8, "8","*"));
-        r2.put(12, new KBSector(12, 2, _O, "o","O", _9, "9","("));
-        r2.put(13, new KBSector(13, 2, _P, "p","P", _0, "0",")"));
-        r2.put(14, new KBSector(14, 2, _B, "b","B", MS, "-","_"));
-        r2.put(15, new KBSector(15, 2, _V, "v","V", ES, "=","+"));
-        r2.put(16, new KBSector(16, 2, _X, "x","X", AT, "⎇","⎇"));
-        r2.put(17, new KBSector(17, 2, _Z, "z","Z", MA, "◆","◆"));
-        s.put(2, r2);
-        Hashtable<Integer, KBSector> r3 = new Hashtable<>();
-        r3.put(0, new KBSector(0, 3, LT, "←","←", HE, "⇱","⇱"));
-        r3.put(1, new KBSector(1, 3, ER, "↩","↩", FN, "⨍","⨍"));
-        r3.put(2, new KBSector(2, 3, TB, "⇥","⇤", EE, "⎋","⎋"));
-        r3.put(3, new KBSector(3, 3, DE, "⌦","⌦", SQ, "⎙","⎙"));
-        r3.put(4, new KBSector(4, 3, BE, "⌫","⌫", IT, "⎀","⎀"));
-        r3.put(5, new KBSector(5, 3, UP, "↑","↑", PP, "⇞","⇞"));
-        r3.put(6, new KBSector(6, 3, DN, "↓","↓", PN, "⇟","⇟"));
-        r3.put(7, new KBSector(7, 3, RT, "→","→", ED, "⇲","⇲"));
-        s.put(3, r3);
-        Hashtable<Integer, KBSector> r4 = new Hashtable<>();
-        r4.put(0, new KBSector(0, 4, F1, "F1","F1", SE, "␣","␣"));
-        r4.put(1, new KBSector(1, 4, F2, "F2","F2", SE, "␣","␣"));
-        r4.put(2, new KBSector(2, 4, F3, "F3","F3", SE, "␣","␣"));
-        r4.put(3, new KBSector(3, 4, F4, "F4","F4", SE, "␣","␣"));
-        r4.put(4, new KBSector(4, 4, F5, "F5","F5", SE, "␣","␣"));
-        r4.put(5, new KBSector(5, 4, F6, "F6","F6", SE, "␣","␣"));
-        r4.put(6, new KBSector(6, 4, F7, "F7","F7", SE, "␣","␣"));
-        r4.put(7, new KBSector(7, 4, F8, "F8","F8", SE, "␣","␣"));
-        r4.put(8, new KBSector(8, 4, F9, "F9","F9", SE, "␣","␣"));
-        r4.put(9, new KBSector(9, 4, F0, "F10","F10", SE, "␣","␣"));
-        r4.put(10, new KBSector(10, 4, FA, "F11","F11", SE, "␣","␣"));
-        r4.put(11, new KBSector(11, 4, FB, "F12","F12", SE, "␣","␣"));
-        s.put(4, r4);
-        return s;
-        */
     }
 }
