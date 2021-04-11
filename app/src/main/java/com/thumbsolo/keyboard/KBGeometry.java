@@ -452,7 +452,7 @@ class KBGeometry {
         r1.put(8, new KBSector(8, 1, ST, "⇧", "⇧", HR, "⇧", "⇧"));
         s.put(1, r1);
         Hashtable<Integer, KBSector> r2 = new Hashtable<>();
-        r2.put(0, new KBSector(0, 2, _B, "b", "B", _0, "0", ")"));
+        r2.put(0, new KBSector(0, 2, _B, "b", "B", LB, "[", "{"));
         r2.put(1, new KBSector(1, 2, _C, "c", "C", RB, "]", "}"));
         r2.put(2, new KBSector(2, 2, _D, "d", "D", BH, "\\", "|"));
         r2.put(3, new KBSector(3, 2, _F, "f", "F", F1, "F1", "F1"));
@@ -468,8 +468,8 @@ class KBGeometry {
         r2.put(13, new KBSector(13, 2, _V, "v", "V", FA, "F11", "F11"));
         r2.put(14, new KBSector(14, 2, _W, "w", "W", FB, "F12", "F12"));
         r2.put(15, new KBSector(15, 2, _X, "x", "X", SH, "/", "?"));
-        r2.put(16, new KBSector(16, 2, _Y, "y", "Y", LB, "[", "{"));
-        r2.put(17, new KBSector(17, 2, _Z, "z", "Z", _9, "9", "("));
+        r2.put(16, new KBSector(16, 2, _Y, "y", "Y", _9, "9", "("));
+        r2.put(17, new KBSector(17, 2, _Z, "z", "Z", _0, "0", ")"));
         s.put(2, r2);
         Hashtable<Integer, KBSector> r3 = new Hashtable<>();
         r3.put(0, new KBSector(0, 3, MS, "-", "_", MS, "-", "_"));
