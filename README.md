@@ -5,6 +5,7 @@ Foray into Android development, and asking the question "is there a better way t
 Created with inspiration/boiler-plate/know-how from a few sources, which I'll list below:
 
 https://github.com/dbof10/float-keyboard
+
 http://www.yorku.ca/mack/ExperimentSoftware/#Graffiti
 
  **GIFs of it in action (Setup, KeyDemo, Typing)**
